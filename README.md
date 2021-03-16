@@ -1,6 +1,8 @@
 # Digital - Senior Engineer test
 
 
+> NOTE: Instructions on running the web server are specified in [`INSTRUCTIONS.md`](INSTRUCTIONS.md).
+
 A lot of our work is about connecting digital service providers (DSPs) like 
 Spotify or YouTube with societies like SGAE or SACEM, who represent music 
 creators. DSPs provide digital sales reports (DSRs), which contain information 
