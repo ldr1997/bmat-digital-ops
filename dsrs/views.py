@@ -19,14 +19,9 @@ class PercentileView(generics.ListAPIView):
         period_start = query.get("period_start")
         period_end = query.get("period_end")
 
-        to_return = []
         try:
             territory = models.Territory.objects.get(code_2=territory_code)
-            # dsr = models.DSR.objects.get(
-            #     territory=territory,
-            #     period_start=period_start,
-            #     period_end=period_end
-            # )
+
             dsr_ids = models.DSR.objects.filter(
                 period_start__gte=period_start
             ).filter(
@@ -36,6 +31,9 @@ class PercentileView(generics.ListAPIView):
             resources = models.Resource.objects.exclude(
                 revenue__isnull=True
             ).filter(dsrs__in=dsr_ids).order_by('-revenue')
+
+            if(len(resources) == 0):
+                return []
 
             revenue_sum = resources.aggregate(sum=Sum('revenue'))['sum']
             revenue_limit = revenue_sum * (number / 100)
@@ -53,9 +51,8 @@ class PercentileView(generics.ListAPIView):
 
                 if (running_total >= revenue_limit): break
 
-            to_return = resources_to_return
+            return resources_to_return
 
         except Exception as e:
-            print(e)
-
-        return to_return
+            print(f'Caught Error: {e}')
+            return []

@@ -24,5 +24,5 @@ router.register(r"dsrs", views.DSRViewSet)
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include(router.urls)),
-    path(r'resources/percentile/<int:number>', views.PercentileView.as_view(),)
+    path(r'resources/percentile/<int:number>', views.PercentileView.as_view(), name='percentile_url')
 ]
