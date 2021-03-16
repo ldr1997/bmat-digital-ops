@@ -11,6 +11,7 @@ pandas = "*"
 currency-symbols = "*"
 ipython = "*"
 google-currency = "*"
+tqdm = "*"
 
 [dev-packages]
 

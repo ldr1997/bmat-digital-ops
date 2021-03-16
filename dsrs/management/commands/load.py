@@ -6,10 +6,12 @@ from dsrs.models import *
 import os
 from datetime import datetime
 from math import isclose
+import json
 
 import pandas as pd
 import pycountry
 from currency_symbols import CurrencySymbols
+from google_currency import convert  
 
 from tqdm import tqdm
 
@@ -41,6 +43,13 @@ class Command(BaseCommand):
                 code=currency_code
             )
 
+            # get conversion rate
+            conversion_rate = 1
+            if (currency_code != 'EUR'):
+                conversion_str = convert(currency_code, 'EUR', 1)
+                conversion_rate = float(json.loads(conversion_str)['amount'])
+                print(f"Conversion rate of {currency_code} to EUR is {conversion_rate}.")
+
             # Load territory
             territory_obj = pycountry.countries.get(alpha_2=territory_code2)
             territory_name = territory_obj.name
@@ -70,11 +79,11 @@ class Command(BaseCommand):
 
             if(dsr.status == 'failed'):
                 if (not created):
-                    Resource.objects.filter(dsr=dsr).delete()
+                    Resource.objects.filter(dsrs__in=[dsr.id]).delete()
                 dsr_data = pd.read_csv(path, compression='gzip', sep='\t')
                 # dsr_data = dsr_data.fillna(None)
                 # dsr_data[['usages', 'revenue']].fillna(None, inplace=True)
-                dsr_data[['title', 'artists', 'isrc']].fillna("", inplace=True)
+                # dsr_data.loc[:, ['title', 'artists', 'isrc']].fillna("", inplace=True)
                 # dsr_data.usages = dsr_data.usages.fillna(None)
                 # dsr_data.revenue = dsr_data.revenue.fillna(None)
 
@@ -90,18 +99,24 @@ class Command(BaseCommand):
                 #     )
                 #     for i, row in dsr_data.iterrows()
                 # ]
-                load_resources(dsr_data, dsr)
+                load_resources(dsr_data, dsr, conversion_rate)
 
 
 @transaction.atomic
-def load_resources(dsr_data, dsr):
+def load_resources(dsr_data, dsr, conversion_rate):
     for i, row in tqdm(dsr_data.iterrows(), desc=str(dsr), total=dsr_data.shape[0]):
         row_dict = {}
         for k, v in row.items():
-            if (v == 'nan') or (k in ['usages', 'revenue'] and pd.np.isnan(v)):
+            if k in ['dsp_id', 'dsrs']:
                 continue
-            if  k not in ['dsp_id', 'dsr']:
-                row_dict.update({k:v})
+            elif k in ['title', 'artists', 'isrc'] and type(v) != str:
+                v = ""
+            elif k in ['usages', 'revenue']:
+                if pd.np.isnan(v):
+                    continue
+                elif k == 'revenue':
+                    v *= conversion_rate
+            row_dict.update({k:v})
 
         resource, created = Resource.objects.get_or_create(dsp_id=row['dsp_id'])
         for k, v in row_dict.items():
