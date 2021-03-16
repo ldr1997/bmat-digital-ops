@@ -9,6 +9,7 @@ from math import isclose
 import json
 
 import pandas as pd
+from numpy import isnan
 import pycountry
 from currency_symbols import CurrencySymbols
 from google_currency import convert  
@@ -111,11 +112,10 @@ def load_resources(dsr_data, dsr, conversion_rate):
                 continue
             elif k in ['title', 'artists', 'isrc'] and type(v) != str:
                 v = ""
-            elif k in ['usages', 'revenue']:
-                if pd.np.isnan(v):
-                    continue
-                elif k == 'revenue':
-                    v *= conversion_rate
+            elif k in ['usages', 'revenue'] and isnan(v):
+                continue
+            elif k == 'revenue':
+                v *= conversion_rate
             row_dict.update({k:v})
 
         resource, created = Resource.objects.get_or_create(dsp_id=row['dsp_id'])

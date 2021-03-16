@@ -12,6 +12,7 @@ currency-symbols = "*"
 ipython = "*"
 google-currency = "*"
 tqdm = "*"
+numpy = "*"
 
 [dev-packages]
 
