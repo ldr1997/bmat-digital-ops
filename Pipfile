@@ -10,6 +10,7 @@ pycountry = "*"
 pandas = "*"
 currency-symbols = "*"
 ipython = "*"
+google-currency = "*"
 
 [dev-packages]
 
