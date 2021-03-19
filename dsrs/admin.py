@@ -6,13 +6,17 @@ from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.db import transaction
 
-from .models import *
+from .models import Territory, Currency, DSR, Resource
+
 
 def delete_dsr_and_resources(modeladmin, request, queryset):
     for dsr in queryset:
         delete_resources_under_dsr(dsr.id)
         DSR.objects.get(id=dsr.id).delete()
+
+
 delete_dsr_and_resources.short_description = "Delete DSR and all resources"
+
 
 @transaction.atomic
 def delete_resources_under_dsr(dsr_id):
@@ -21,27 +25,35 @@ def delete_resources_under_dsr(dsr_id):
     for resource in dsr_resources:
         if (resource.dsrs.count() == 1):
             to_be_deleted.append(resource.dsp_id)
-            
+
     dsr_resources.filter(dsp_id__in=to_be_deleted).delete()
 
 
-# Register your models here.
 class TerritoryAdmin(admin.ModelAdmin):
-    list_display=('name', 'code_2', 'code_3', 'local_currency')
+    list_display = ('name', 'code_2', 'code_3', 'local_currency')
+
 
 class CurrencyAdmin(admin.ModelAdmin):
-    list_display=('name', 'symbol', 'code')
+    list_display = ('name', 'symbol', 'code')
+
 
 class DSRAdmin(admin.ModelAdmin):
     actions = [delete_dsr_and_resources]
     change_list_template = "dsr_changelist.html"
-    list_display=('territory', 'period_start', 'period_end', 'currency', 'status', 'dsr_actions')
+    list_display = (
+        'territory', 'period_start', 'period_end',
+        'currency', 'status', 'dsr_actions'
+        )
 
     def get_urls(self):
         urls = super().get_urls()
         my_urls = [
             path('reload/', self.load_DSRs),
-            path(r'remove_all/<int:dsr_id>', self.delete_DSR, name='remove-all-dsr')
+            path(
+                r'remove_all/<int:dsr_id>',
+                self.delete_DSR,
+                name='remove-all-dsr'
+            )
         ]
         return my_urls + urls
 
@@ -78,7 +90,10 @@ class DSRAdmin(admin.ModelAdmin):
 
 
 class ResourceAdmin(admin.ModelAdmin):
-    list_display=('dsp_id', 'title', 'artists', 'isrc', 'usages', 'revenue', 'display_dsrs')
+    list_display = (
+        'dsp_id', 'title', 'artists', 'isrc',
+        'usages', 'revenue', 'display_dsrs'
+    )
     list_filter = ['dsrs']
 
     def display_dsrs(self, obj):

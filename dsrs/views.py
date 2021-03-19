@@ -1,12 +1,12 @@
-from rest_framework import viewsets, filters, generics
-from django.http import HttpResponse
+from rest_framework import viewsets, generics
 from django.db.models import Sum
 from . import models, serializers
-import logging
+
 
 class DSRViewSet(viewsets.ModelViewSet):
     queryset = models.DSR.objects.all()
     serializer_class = serializers.DSRSerializer
+
 
 class PercentileView(generics.ListAPIView):
     serializer_class = serializers.ResourceSerializer
@@ -44,12 +44,14 @@ class PercentileView(generics.ListAPIView):
 
             for resource in resources:
                 space_left = revenue_limit - running_total
-                if (resource.revenue > space_left): continue
+                if (resource.revenue > space_left):
+                    continue
 
                 resources_to_return.append(resource)
                 running_total += resource.revenue
 
-                if (running_total >= revenue_limit): break
+                if (running_total >= revenue_limit):
+                    break
 
             return resources_to_return
 

@@ -1,25 +1,23 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from dsrs.models import *
+from .models import Currency, Territory, DSR, Resource
 
 import os
 from datetime import datetime
-from math import isclose
 import json
 
 import pandas as pd
 from numpy import isnan
 import pycountry
 from currency_symbols import CurrencySymbols
-from google_currency import convert  
+from google_currency import convert
 
 from tqdm import tqdm
 
 
 class Command(BaseCommand):
     help = 'Load data located in "data" folder.'
-
 
     def handle(self, *args, **options):
         DSR_ROOT = 'data/'
@@ -49,7 +47,8 @@ class Command(BaseCommand):
             if (currency_code != 'EUR'):
                 conversion_str = convert(currency_code, 'EUR', 1)
                 conversion_rate = float(json.loads(conversion_str)['amount'])
-                print(f"Conversion rate of {currency_code} to EUR is {conversion_rate}.")
+                print(f"""Conversion rate of {currency_code}"""
+                      """to EUR is {conversion_rate}.""")
 
             # Load territory
             territory_obj = pycountry.countries.get(alpha_2=territory_code2)
@@ -68,7 +67,6 @@ class Command(BaseCommand):
             period_start = datetime.strptime(period_split[0], '%Y%m%d')
             period_end = datetime.strptime(period_split[1], '%Y%m%d')
 
-
             # Load DSR
             dsr, created = DSR.objects.get_or_create(
                 path=path,
@@ -82,30 +80,13 @@ class Command(BaseCommand):
                 if (not created):
                     Resource.objects.filter(dsrs__in=[dsr.id]).delete()
                 dsr_data = pd.read_csv(path, compression='gzip', sep='\t')
-                # dsr_data = dsr_data.fillna(None)
-                # dsr_data[['usages', 'revenue']].fillna(None, inplace=True)
-                # dsr_data.loc[:, ['title', 'artists', 'isrc']].fillna("", inplace=True)
-                # dsr_data.usages = dsr_data.usages.fillna(None)
-                # dsr_data.revenue = dsr_data.revenue.fillna(None)
-
-                # resources = [
-                #     Resource(
-                #         dsp_id=row['dsp_id'],
-                #         title=row['title'],
-                #         artists=row['artists'],
-                #         isrc=row['isrc'],
-                #         usages=row['usages'],
-                #         revenue=row['revenue'],
-                #         dsr=dsr
-                #     )
-                #     for i, row in dsr_data.iterrows()
-                # ]
                 load_resources(dsr_data, dsr, conversion_rate)
 
 
 @transaction.atomic
 def load_resources(dsr_data, dsr, conversion_rate):
-    for i, row in tqdm(dsr_data.iterrows(), desc=str(dsr), total=dsr_data.shape[0]):
+    for i, row in tqdm(dsr_data.iterrows(), desc=str(dsr),
+                       total=dsr_data.shape[0]):
         row_dict = {}
         for k, v in row.items():
             if k in ['dsp_id', 'dsrs']:
@@ -116,13 +97,13 @@ def load_resources(dsr_data, dsr, conversion_rate):
                 continue
             elif k == 'revenue':
                 v *= conversion_rate
-            row_dict.update({k:v})
+            row_dict.update({k: v})
 
-        resource, created = Resource.objects.get_or_create(dsp_id=row['dsp_id'])
+        resource, _ = Resource.objects.get_or_create(dsp_id=row['dsp_id'])
         for k, v in row_dict.items():
             if getattr(resource, k) is None and v is not None:
                 setattr(resource, k, v)
-    
+
         resource.dsrs.add(dsr)
         resource.save()
 

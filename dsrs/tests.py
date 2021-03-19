@@ -1,16 +1,17 @@
 from django.test import TestCase
-from django.urls import reverse, path
+from django.urls import reverse
 from rest_framework.renderers import JSONRenderer
 
-from .models import *
+from .models import Currency, Territory, DSR, Resource
 from .serializers import DSRSerializer, ResourceSerializer
 
 import pycountry
-from datetime import datetime, date
+from datetime import date
 from currency_symbols import CurrencySymbols
 
 
-def generate_dsr_object_to_db(path, period_start, period_end, territory_code2, currency_code):
+def generate_dsr_object_to_db(path, period_start, period_end,
+                              territory_code2, currency_code):
     # Load currency
     currency_obj = pycountry.currencies.get(alpha_3=currency_code)
     currency_name = currency_obj.name
@@ -33,7 +34,7 @@ def generate_dsr_object_to_db(path, period_start, period_end, territory_code2, c
         code_3=territory_code3,
         local_currency=currency
     )
-    
+
     return DSR.objects.create(
         path=path,
         period_start=period_start,
@@ -48,8 +49,10 @@ def create_dsr_object(offset=0, offset_territory=True):
     territories = ['NO', 'ES', 'CH', 'GB']
     currencies = ['NOK', 'EUR', 'CHF', 'GBP']
 
-    if (offset_territory): offset1 = offset
-    else: offset1 = 0
+    if (offset_territory):
+        offset1 = offset
+    else:
+        offset1 = 0
 
     territory_code2 = territories[offset1]
     currency_code = currencies[offset1]
@@ -61,6 +64,7 @@ def create_dsr_object(offset=0, offset_territory=True):
         territory_code2=territory_code2,
         currency_code=currency_code
     )
+
 
 def create_resources(dsr, usages, revenues):
     for i in range(len(revenues)):
@@ -76,14 +80,13 @@ def create_resources(dsr, usages, revenues):
 
 
 class DSRTests(TestCase):
-    
+
     def get_expected_output_DSR(self, many=True, dsr=None):
         if (many):
             serializer = DSRSerializer(DSR.objects.all(), many=many)
         else:
             serializer = DSRSerializer(dsr, many=many)
         return JSONRenderer().render(serializer.data)
-
 
     # endpoint /dsrs/
     def test_list_dsrs_multiple(self):
@@ -98,19 +101,18 @@ class DSRTests(TestCase):
 
     def test_list_dsrs_none(self):
         response = self.client.get(reverse('dsr-list'))
-        expected_output=b'[]'
+        expected_output = b'[]'
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.content, expected_output)
 
     def test_list_dsrs_one(self):
-        dsr = create_dsr_object()
+        create_dsr_object()
         response = self.client.get(reverse('dsr-list'))
         expected_output = self.get_expected_output_DSR()
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.content, expected_output)
-
 
     # endpoint /dsrs/{id}
     def test_get_dsr_details(self):
@@ -122,7 +124,7 @@ class DSRTests(TestCase):
         self.assertEquals(response.content, expected_output)
 
     def test_get_dsr_details_none(self):
-        dsr = create_dsr_object()
+        create_dsr_object()
         response = self.client.get(reverse('dsr-detail', args=[0]))
         expected_output = b'{"detail":"Not found."}'
         self.assertEquals(response.status_code, 404)
@@ -132,7 +134,6 @@ class DSRTests(TestCase):
 class ResourceTests(TestCase):
 
     # endpoint /resources/percentile/{number}
-    
     def get_expected_output_resource(self, many=True, resource=None):
         if (many):
             serializer = ResourceSerializer(
@@ -142,7 +143,7 @@ class ResourceTests(TestCase):
         else:
             serializer = ResourceSerializer(resource, many=many)
         return JSONRenderer().render(serializer.data)
-    
+
     def get_expected_output_percentile(self, dsr_ids, cutoff):
         resources = Resource.objects.exclude(
             revenue__isnull=True
@@ -151,45 +152,40 @@ class ResourceTests(TestCase):
         serializer = ResourceSerializer(resources[:cutoff], many=True)
         return JSONRenderer().render(serializer.data)
 
-
     def test_get_top_percentile_multiple_dsrs(self):
-        dsrs = [create_dsr_object(i, offset_territory=False) for i in [0,1]]
+        dsrs = [create_dsr_object(i, offset_territory=False) for i in [0, 1]]
         for dsr in dsrs:
-            create_resources(dsr,
-                [i for i in range(10)],
-                [10 for i in range(10)]
-            )
+            create_resources(dsr, [i for i in range(10)],
+                             [10 for i in range(10)])
+
         response = self.client.get(reverse('percentile_url', args=[25]), {
             'territory': dsr.territory.code_2,
             'period_start': dsrs[0].period_start,
             'period_end': dsrs[1].period_end
         })
-        
-        expected_output = self.get_expected_output_percentile([dsr.id],5)
-        self.assertEquals(response.status_code, 200)
-        self.assertEqual(expected_output,response.content)
 
+        expected_output = self.get_expected_output_percentile([dsr.id], 5)
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(expected_output, response.content)
 
     def test_get_top_percentile(self):
         dsr = create_dsr_object()
-        create_resources(dsr,
-            [i for i in range(10)],
-            [10 for i in range(10)]
-        )
+        create_resources(dsr, [i for i in range(10)],
+                         [10 for i in range(10)])
+
         response = self.client.get(reverse('percentile_url', args=[22]), {
             'territory': dsr.territory.code_2,
             'period_start': dsr.period_start,
             'period_end': dsr.period_end
         })
-        
-        expected_output = self.get_expected_output_percentile([dsr.id],2)
-        self.assertEquals(response.status_code, 200)
-        self.assertEqual(expected_output,response.content)
 
+        expected_output = self.get_expected_output_percentile([dsr.id], 2)
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(expected_output, response.content)
 
     def test_get_top_percentile_100(self):
         dsr = create_dsr_object()
-        create_resources(dsr, [0,0,0], [5,1,4])
+        create_resources(dsr, [0, 0, 0], [5, 1, 4])
         response = self.client.get(reverse('percentile_url', args=[100]), {
             'territory': dsr.territory.code_2,
             'period_start': dsr.period_start,
@@ -197,17 +193,16 @@ class ResourceTests(TestCase):
         })
 
         self.assertEquals(response.status_code, 200)
-        self.assertEqual(self.get_expected_output_resource(),response.content)
-
+        self.assertEqual(self.get_expected_output_resource(), response.content)
 
     def test_get_top_percentile_empty(self):
         dsr = create_dsr_object()
-        create_resources(dsr, [0,0,0], [5,1,4])
+        create_resources(dsr, [0, 0, 0], [5, 1, 4])
         response = self.client.get(reverse('percentile_url', args=[100]), {
             'territory': dsr.territory.code_2,
             'period_start': dsr.period_end,
             'period_end': dsr.period_start
         })
-        
+
         self.assertEquals(response.status_code, 200)
-        self.assertEqual(b'[]',response.content)
+        self.assertEqual(b'[]', response.content)

@@ -1,11 +1,10 @@
 from rest_framework import serializers
-
-from . import models
+from .models import Territory, Currency, DSR, Resource
 
 
 class TerritorySerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.Territory
+        model = Territory
         fields = (
             "name",
             "code_2",
@@ -14,7 +13,7 @@ class TerritorySerializer(serializers.ModelSerializer):
 
 class CurrencySerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.Currency
+        model = Currency
         fields = (
             "name",
             "code",
@@ -26,7 +25,7 @@ class DSRSerializer(serializers.ModelSerializer):
     currency = CurrencySerializer()
 
     class Meta:
-        model = models.DSR
+        model = DSR
         fields = (
             "id",
             "path",
@@ -37,9 +36,10 @@ class DSRSerializer(serializers.ModelSerializer):
             "currency",
         )
 
+
 class DSRSerializerId(serializers.ModelSerializer):
     class Meta:
-        model = models.DSR
+        model = DSR
         fields = ["id"]
 
     def to_representation(self, instance):
@@ -50,7 +50,7 @@ class ResourceSerializer(serializers.ModelSerializer):
     dsrs = DSRSerializerId(many=True)
 
     class Meta:
-        model = models.Resource
+        model = Resource
         fields = (
             'dsp_id',
             'title',

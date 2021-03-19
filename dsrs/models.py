@@ -68,7 +68,7 @@ class Resource(models.Model):
         max_length=256, null=True,
         help_text="Multivalue, pipe-separated list of artist names."
     )
-    
+
     isrc = models.CharField(max_length=16, null=True)
     usages = models.IntegerField(null=True)
     revenue = models.FloatField(null=True)
