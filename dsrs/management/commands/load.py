@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from .models import Currency, Territory, DSR, Resource
+from dsrs.models import Currency, Territory, DSR, Resource
 
 import os
 from datetime import datetime
