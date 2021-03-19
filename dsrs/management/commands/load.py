@@ -48,7 +48,7 @@ class Command(BaseCommand):
                 conversion_str = convert(currency_code, 'EUR', 1)
                 conversion_rate = float(json.loads(conversion_str)['amount'])
                 print(f"""Conversion rate of {currency_code}"""
-                      """to EUR is {conversion_rate}.""")
+                      f"""to EUR is {conversion_rate}.""")
 
             # Load territory
             territory_obj = pycountry.countries.get(alpha_2=territory_code2)
